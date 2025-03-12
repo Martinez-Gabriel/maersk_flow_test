@@ -1,11 +1,14 @@
 import { chromium } from 'playwright';
 import *as logsM from './utils/logsModule.js'
 import *as keyboardM from './utils/keyboardModule.js'
+import *as procedureM from './utils/procedureModule.js'
 
 (async () => {
     let browser;
 
     try {
+        //headless = false => muestra el browser visualmente
+        //slowMo = 500 => ralentiza la ejecución en 500ms
         browser = await chromium.launch({ headless: false, slowMo: 500 });
         const page = await browser.newPage();
         await page.setViewportSize({ width: 1280, height: 720 });
@@ -42,93 +45,104 @@ import *as keyboardM from './utils/keyboardModule.js'
                 }
 
                 // Stage 2 - Escanear DNI
-                const stageScanDNI = page.locator('text="Escanear DNI"');  // Locator para el stage "Escanear DNI"
-                await stageScanDNI.waitFor({ state: 'visible', timeout: 3000 });
-                logsM.logToCSV('StageScanDNI', 'El stage Escanear DNI está visible.');
-                
-                logsM.logToCSV('StageScanDNI', 'Esperando que el usuario escanee el DNI...');
-                await page.locator('text="Escanear DNI"').waitFor({ state: 'hidden' }); // Espera hasta que el stage desaparezca
-                logsM.logToCSV('StageScanDNI', 'DNI escaneado y stage avanzado.');
+                const stageScanDNI = page.locator();  // Locator para el stage "Escanear DNI"
+                if(stageScanDNI.isVisible()){
+                    logsM.logToCSV('WaitingScanDni', 'Esperando que el usuario escanee el DNI...');
 
+                    // Espera hasta que el stage desaparezca
+                    await stageScanDNI.waitFor({ state: 'hidden' }); 
+                }
+
+                //Validacion stage tramites
+                const stageProcedures = page.locator();
+                if (stageProcedures.isVisible()) {
+                    logsM.logToCSV('SuccessScanDni', 'DNI ESCANEADO correctamente.');    
+                }
 
                 // Stage 3 - Modulo de teclado para ingresar DNI
                 const stageInputDNI = page.locator() // Locator para el stage "Input DNI"
-                await stageInputDNI.waitFor({ state: 'visible', timeout: 5000});
-                logsM.logToCSV('stageInputDNI', 'El stage Input DNI está visible.');
+                if (await stageInputDNI.isVisible()) {
+                    logsM.logToCSV('FailScanDni', 'FAIL al escanear DNI.');
+
+                    logsM.logToCSV('WaitingInputDni', 'Esperando que el usuario ingrese manualmente el DNI...');
+
+                // await stageInputDNI.waitFor({ state: 'visible', timeout: 5000});
                 
-                const keyboard = [
-                    {
-                        name: '0',
-                        locator: page.locator('')
-                    },
-                    {
-                        name: '1',
-                        locator: page.locator('')
-                    },
-                    {
-                        name: '2',
-                        locator: page.locator('')
-                    },
-                    {
-                        name: '3',
-                        locator: page.locator('')
-                    },
-                    {
-                        name: '4',
-                        locator: page.locator('')
-                    },
-                    {
-                        name: '5',
-                        locator: page.locator('')
-                    },
-                    {
-                        name: '6',
-                        locator: page.locator('')
-                    },
-                    {
-                        name: '7',
-                        locator: page.locator('')
-                    },
-                    {
-                        name: '8',
-                        locator: page.locator('')
-                    },
-                    {
-                        name: '9',
-                        locator: page.locator('')
-                    },
-                    {
-                        name: 'Borrar',
-                        locator: page.locator('')
-                    },
-                    {
-                        name: 'Ok',
-                        locator: page.locator('')
-                    },
+                    const keyboard = [
+                        {
+                            name: '0',
+                            locator: page.locator('')
+                        },
+                        {
+                            name: '1',
+                            locator: page.locator('')
+                        },
+                        {
+                            name: '2',
+                            locator: page.locator('')
+                        },
+                        {
+                            name: '3',
+                            locator: page.locator('')
+                        },
+                        {
+                            name: '4',
+                            locator: page.locator('')
+                        },
+                        {
+                            name: '5',
+                            locator: page.locator('')
+                        },
+                        {
+                            name: '6',
+                            locator: page.locator('')
+                        },
+                        {
+                            name: '7',
+                            locator: page.locator('')
+                        },
+                        {
+                            name: '8',
+                            locator: page.locator('')
+                        },
+                        {
+                            name: '9',
+                            locator: page.locator('')
+                        },
+                        {
+                            name: 'Borrar',
+                            locator: page.locator('')
+                        },
+                        {
+                            name: 'Ok',
+                            locator: page.locator('')
+                        },
+                    
+                    ]
+
+                    const dniActual = await keyboardM.getElementAtIndex(listOfDni, turnoNum); 
+                    await keyboardM.inputDni(page, keyboard, dniActual.toString());
+                    logsM.logToCSV('SuccessInputDni', 'DNI INGRESADO correctamente.');    
+                }
                 
+
+                // Stage 4 - Botones de tramite
+                const procedureList = [
+                    {
+                        name: "botonMaersk",
+                        locator: page.locator('img.btn.circle[src="/static/images/btn-legales.png"]').first()
+                    },
+                    {
+                        name: "botonMaerskAereo",
+                        locator: page.locator('button.btn-totem-selection2.btn-block.stage-option.strongles.pull-right', { hasText: 'JUICIOS' })
+                    },
+                    {
+                        name: "botonMaerskLsl",
+                        locator: page.locator('button.btn-totem-multioption.btn-material-bluegrey.stage-option.strongles.pull-right.btn-block', { hasText: 'OFICIAL NOTIFICADOR' })
+                    },
                 ]
 
-                const dniActual = keyboardM.getElementAtIndex(listOfDni, turnoNum); 
-                await keyboardM.inputDni(page, keyboard, dniActual.toString());
-
-              
-                // Stage 4 - Botones de tramite
-                const botonMaersk = page.locator('img.btn.circle[src="/static/images/btn-legales.png"]').first();
-                const botonMaerskAereo = page.locator('button.btn-totem-selection2.btn-block.stage-option.strongles.pull-right', { hasText: 'JUICIOS' });
-                const botonMaerskLsl = page.locator('button.btn-totem-multioption.btn-material-bluegrey.stage-option.strongles.pull-right.btn-block', { hasText: 'OFICIAL NOTIFICADOR' });
-
-                // Boton Maersk
-                logsM.logCheckVisibleButton('botonMaersk', botonMaersk)
-                logsM.logClickButton('botonMaersk', botonMaersk)
-                
-                // Boton MaerskAereo
-                logsM.logCheckVisibleButton('botonMaerskAereo', botonMaerskAereo)
-                logsM.logClickButton('botonMaerskAereo', botonMaerskAereo)
-                
-                // Boton MaerskLsl
-                logsM.logCheckVisibleButton('botonMaerskLsl', botonMaerskLsl)
-                logsM.logClickButton('botonMaerskLsl', botonMaerskLsl)
-
+                procedureM.selectRandomProcedure(procedureList);
 
                 logsM.logToCSV('EndTurn', `Finalizado turno ${turnoNum} de ${ciclos}`);
             } catch (error) {

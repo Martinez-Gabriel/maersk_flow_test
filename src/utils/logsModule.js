@@ -1,4 +1,5 @@
 import fs from 'fs';
+import moment from 'moment-timezone';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
 
@@ -11,8 +12,8 @@ const logFilePath = resolve(__dirname, nameFileSave);
 
 // Devuelve el Timestamp
 export function getCurrentTimestamp() {
-    const now = new Date();
-    return now.toISOString().replace('T', ' ').split('.')[0];
+    const now = moment().tz('America/Argentina/Buenos_Aires');
+    return now.format('YYYY-MM-DD HH:mm:ss');
 }
 
 // Escribe log en el archivo CSV

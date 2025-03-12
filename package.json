@@ -16,7 +16,8 @@
   "description": "",
   "dependencies": {
     "@babel/core": "^7.26.10",
-    "@babel/preset-env": "^7.26.9"
+    "@babel/preset-env": "^7.26.9",
+    "moment-timezone": "^0.5.47"
   },
   "pkg": {
     "assets": [

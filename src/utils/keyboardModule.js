@@ -27,7 +27,7 @@ export async function inputDni(page, keyboard, dni){
 }
 
 // Devuelve el elemento de la lista en la posición indicada
-export function getElementAtIndex(list, index) {
+export async function getElementAtIndex(list, index) {
     if (index >= 0 && index < list.length) {
         return list[index];
     } else {

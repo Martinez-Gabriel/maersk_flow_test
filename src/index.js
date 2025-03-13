@@ -1,7 +1,18 @@
+import dotenv from 'dotenv';
 import { chromium } from 'playwright';
 import *as logsM from './utils/logsModule.js'
-import *as keyboardM from './utils/keyboardModule.js'
-import *as procedureM from './utils/procedureModule.js'
+import *as keyboardM from './terminal/keyboardModule.js'
+import *as procedureM from './terminal/procedureModule.js'
+
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
+
+dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const logPath = resolve(__dirname, './logs/logMaerskTerminal.csv');
 
 (async () => {
     let browser;
@@ -21,17 +32,19 @@ import *as procedureM from './utils/procedureModule.js'
 
         const ciclos = 120;
         const delayEntreTurnos = 60000; // 1 minutos en milisegundos
+
         const listOfDni = keyboardM.generateDniRandoms(ciclos);
+        logsM.logToCSV(logPath, 'DniList', `Lista de DNI generada: ${listOfDni}`);
 
         for (let i = 0; i < ciclos; i++) {
 
             const turnoNum = i + 1;
             console.log(`Turno ${turnoNum} de ${ciclos}`);
-            logsM.logToCSV('StartTurn', `Iniciando turno ${turnoNum} de ${ciclos}`);
+            logsM.logToCSV(logPath,'StartTurn', `Iniciando turno ${turnoNum} de ${ciclos}`);
 
             try {
-                await page.goto('http://exodev-metrics-exo-dev-vm-dockerhost-bac1-001.exodev.local/client/flows/dispenser_1/');
-                logsM.logToCSV('Navigation', 'Página cargada correctamente.');
+                await page.goto(process.env.DOMAIN_URL + '/client/flows/dispenser_1/');
+                logsM.logToCSV(logPath, 'Navigation', 'Página cargada correctamente.');
 
                 await page.waitForTimeout(3000);
 
@@ -39,15 +52,15 @@ import *as procedureM from './utils/procedureModule.js'
                 const botonInicio = page.locator('img.btn.btn-without-over.circle[src="/static/images/btn-inicio.png"]').first();
 
                 if (await botonInicio.isVisible()) {
-                    logsM.logToCSV('ButtonCheck', 'El botón con el icono Inicio está visible.');
+                    logsM.logToCSV(logPath, 'ButtonCheck', 'El botón con el icono Inicio está visible.');
                     await botonInicio.click();
-                    logsM.logToCSV('ButtonClick', `El botón con el icono Inicio fue clickeado correctamente.`);
+                    logsM.logToCSV(logPath, 'ButtonClick', `El botón con el icono Inicio fue clickeado correctamente.`);
                 }
 
                 // Stage 2 - Escanear DNI
                 const stageScanDNI = page.locator();  // Locator para el stage "Escanear DNI"
                 if(stageScanDNI.isVisible()){
-                    logsM.logToCSV('WaitingScanDni', 'Esperando que el usuario escanee el DNI...');
+                    logsM.logToCSV(logPath, 'WaitingScanDni', 'Esperando que el usuario escanee el DNI...');
 
                     // Espera hasta que el stage desaparezca
                     await stageScanDNI.waitFor({ state: 'hidden' }); 
@@ -56,15 +69,15 @@ import *as procedureM from './utils/procedureModule.js'
                 //Validacion stage tramites
                 const stageProcedures = page.locator();
                 if (stageProcedures.isVisible()) {
-                    logsM.logToCSV('SuccessScanDni', 'DNI ESCANEADO correctamente.');    
+                    logsM.logToCSV(logPath, 'SuccessScanDni', 'DNI ESCANEADO correctamente.');    
                 }
 
                 // Stage 3 - Modulo de teclado para ingresar DNI
                 const stageInputDNI = page.locator() // Locator para el stage "Input DNI"
                 if (await stageInputDNI.isVisible()) {
-                    logsM.logToCSV('FailScanDni', 'FAIL al escanear DNI.');
+                    logsM.logToCSV(logPath, 'FailScanDni', 'FAIL al escanear DNI.');
 
-                    logsM.logToCSV('WaitingInputDni', 'Esperando que el usuario ingrese manualmente el DNI...');
+                    logsM.logToCSV(logPath, 'WaitingInputDni', 'Esperando que el usuario ingrese manualmente el DNI...');
 
                 // await stageInputDNI.waitFor({ state: 'visible', timeout: 5000});
                 
@@ -121,8 +134,8 @@ import *as procedureM from './utils/procedureModule.js'
                     ]
 
                     const dniActual = await keyboardM.getElementAtIndex(listOfDni, turnoNum); 
-                    await keyboardM.inputDni(page, keyboard, dniActual.toString());
-                    logsM.logToCSV('SuccessInputDni', 'DNI INGRESADO correctamente.');    
+                    await keyboardM.inputDni(page, logPath , keyboard, dniActual.toString());
+                    logsM.logToCSV(logPath, 'SuccessInputDni', 'DNI INGRESADO correctamente.');    
                 }
                 
 
@@ -142,11 +155,11 @@ import *as procedureM from './utils/procedureModule.js'
                     },
                 ]
 
-                procedureM.selectRandomProcedure(procedureList);
+                procedureM.selectRandomProcedure(logPath, procedureList);
 
-                logsM.logToCSV('EndTurn', `Finalizado turno ${turnoNum} de ${ciclos}`);
+                logsM.logToCSV(logPath, 'EndTurn', `Finalizado turno ${turnoNum} de ${ciclos}`);
             } catch (error) {
-                logsM.logToCSV('Error', `Error en el turno ${turnoNum}: ${error.message}`);
+                logsM.logToCSV(logPath, 'Error', `Error en el turno ${turnoNum}: ${error.message}`);
                 console.error(`Error en el turno ${turnoNum}:`, error);
             }
 
@@ -156,12 +169,12 @@ import *as procedureM from './utils/procedureModule.js'
             }
         }
     } catch (error) {
-        logsM.logToCSV('CriticalError', `Error crítico: ${error.message}`);
+        logsM.logToCSV(logPath, 'CriticalError', `Error crítico: ${error.message}`);
         console.error('Error crítico:', error);
     } finally {
         if (browser) {
             await browser.close();
-            logsM.logToCSV('Browser', 'Navegador cerrado correctamente.');
+            logsM.logToCSV(logPath, 'Browser', 'Navegador cerrado correctamente.');
         }
     }
 })();
@@ -171,7 +184,7 @@ process.on('SIGINT', async () => {
     console.log('Interrupción detectada. Cerrando el navegador...');
     if (browser) {
         await browser.close();
-        logsM.logToCSV('Interruption', 'Navegador cerrado debido a interrupción manual.');
+        logsM.logToCSV(logPath, 'Interruption', 'Navegador cerrado debido a interrupción manual.');
     }
     process.exit();
 });

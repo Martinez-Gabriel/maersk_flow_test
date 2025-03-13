@@ -1,4 +1,4 @@
-import *as logsM from './logsModule.js'
+import *as logsM from '../utils/logsModule.js'
 
 // Genera una lista de DNI aleatorios reciendo la cantidad de elementos a generar
 export function generateDniRandoms(cant) {
@@ -6,23 +6,22 @@ export function generateDniRandoms(cant) {
     for (let i = 0; i < cant; i++) {
         dniList.push(Math.floor(Math.random() * (99999999 - 1000000 + 1)) + 1000000);
     }
-    logsM.logToCSV('DniList', `Lista de DNI generada: ${dniList}`);
     return dniList;
 }
 
 // Recorre dni ingresado y ejecuta click en cada boton mostrando log
-export async function inputDni(page, keyboard, dni){
+export async function inputDni(page, logPath, keyboard, dni){
     for (const digit of dni){
         const boton = keyboard.find(b => b.nombre === digit);
     
         if(boton){
         const buttonElement = page.locator(boton.locator)
-        logsM.visibleAndClickLog(digit, buttonElement)
+        logsM.visibleAndClickLog(logPath, digit, buttonElement)
         }   
     }
     const botonOk = keyboard.find(b => b.nombre === 'Ok');
     if (botonOk) {
-        logsM.visibleAndClickLog('Ok', botonOk.locator)
+        logsM.visibleAndClickLog(logPath, 'Ok', botonOk.locator)
     }
 }
 

@@ -1,14 +1,6 @@
 import fs from 'fs';
 import moment from 'moment-timezone';
-import { fileURLToPath } from 'url';
-import { dirname, resolve } from 'path';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const nameFileSave = '../logs/logMaerskTerminal.csv';
-
-const logFilePath = resolve(__dirname, nameFileSave);
 
 // Devuelve el Timestamp
 export function getCurrentTimestamp() {
@@ -17,40 +9,38 @@ export function getCurrentTimestamp() {
 }
 
 // Escribe log en el archivo CSV
-export function logToCSV(event, message) {
+export function logToCSV(logPath ,event, message) {
     const timestamp = getCurrentTimestamp();
     const logEntry = `${timestamp},${event},${message}\n`;
 
-    if (!fs.existsSync(logFilePath)) {
-        fs.writeFileSync(logFilePath, 'Timestamp,Event,Message\n');
+    if (!fs.existsSync(logPath)) {
+        fs.writeFileSync(logPath, 'Timestamp,Event,Message\n');
     }
 
-    fs.appendFileSync(logFilePath, logEntry);
-}
-
-// Escribe log cuando el boton es visible
-export async function logCheckVisibleButton(name, button) {
-    if (button.isVisible) {
-        logToCSV('ButtonCheck', `El Botón ${name} está visible.`);
-    }   
-}
-
-// Escribe log cuando se realice click en el boton
-export async function logClickButton(name, button) {
-    await button.click();
-    logToCSV('ButtonClick', `El Botón ${name} fue clickeado correctamente.`);
+    fs.appendFileSync(logPath, logEntry);
 }
 
 // Escribe log si el boton esta visible y ejecuta un click, si no muestra el log buttonFail
-export async function visibleAndClickLog(name, button) {
+export async function visibleAndClickLog(logPath, name, button) {
     if (await button.isVisible) {
-        logToCSV('ButtonCheck', `El Botón ${name} está visible.`);
+        logToCSV(logPath, 'ButtonCheck', `El Botón ${name} está visible.`);
         
         await button.click();
-        logToCSV('ButtonClick', `El Botón ${name} fue clickeado correctamente.`);
+        logToCSV(logPath, 'ButtonClick', `El Botón ${name} fue clickeado correctamente.`);
     }else {
-        logToCSV('ButtonFail', `El Botón ${name} no está visible.`);
+        logToCSV(logPath, 'ButtonFail', `El Botón ${name} no está visible.`);
     }
 }
 
+// Escribe log cuando el boton es visible
+// export async function logCheckVisibleButton(logPath, name, button) {
+//     if (button.isVisible) {
+//         logToCSV(logPath,'ButtonCheck', `El Botón ${name} está visible.`);
+//     }   
+// }
 
+// Escribe log cuando se realice click en el boton
+// export async function logClickButton(logPath, name, button) {
+//     await button.click();
+//     logToCSV(logPath, 'ButtonClick', `El Botón ${name} fue clickeado correctamente.`);
+// }

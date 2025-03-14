@@ -1,10 +1,14 @@
 {
   "name": "maersk-flow-test",
   "version": "1.0.0",
-  "main": "src/index.js",
-  "bin": "src/index.js",
+  "main": "src/maerskTerminal.js",
+  "bin": "src/maerskTerminal.js",
   "scripts": {
-    "terminal": "node src/index.js",
+    "terminal": "node src/maerskTerminal.js",
+    "caller1": "node src/maerskCaller1.js",
+    "caller2": "node src/maerskCaller2.js",
+    "caller3": "node src/maerskCaller3.js",
+    "caller4": "node src/maerskCaller4.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "build:win": "pkg . --targets node18-win-x64 --output build/maersk-flow-test.exe",
     "build:linux": "pkg . --targets node18-linux-x64 --output build/maersk-flow-test"
@@ -26,7 +30,7 @@
       "node_modules/**/*"
     ],
     "scripts": [
-      "src/index.js"
+      "src/maerskTerminal.js"
     ]
   },
   "devDependencies": {

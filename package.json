@@ -5,6 +5,7 @@
   "bin": "src/maerskTerminal.js",
   "scripts": {
     "terminal": "node src/maerskTerminal.js",
+    "terminal2": "node src/maerskTerminalMockScaner.js",
     "caller1": "node src/maerskCaller1.js",
     "caller2": "node src/maerskCaller2.js",
     "caller3": "node src/maerskCaller3.js",

@@ -22,7 +22,7 @@ const logPath = resolve(__dirname, './logs/logMaerskTerminal.csv');
         //slowMo = 500 => ralentiza la ejecución en 500ms
         browser = await chromium.launch({ headless: false, slowMo: 500 });
         const page = await browser.newPage();
-        await page.setViewportSize({ width: 1280, height: 720 });
+        await page.setViewportSize({ width: 1366, height: 768});
 
         await page.addInitScript(() => {
             window.print = () => {
@@ -33,8 +33,8 @@ const logPath = resolve(__dirname, './logs/logMaerskTerminal.csv');
         const ciclos = 200;
         const delayEntreTurnos = 60000; // 1 minutos en milisegundos
 
-        const listOfDni = keyboardM.generateDniRandoms(ciclos);
-        logsM.logToCSV(logPath, 'DniList', `Lista de DNI generada: ${listOfDni}`);
+        const listOfDni = keyboardM.generateDniRandoms(ciclos + 1);
+        logsM.logToCSV(logPath, 'dniInputListMock', `Lista de DNI input generada: ${listOfDni}`);
 
         for (let i = 0; i < ciclos; i++) {
 
@@ -43,98 +43,99 @@ const logPath = resolve(__dirname, './logs/logMaerskTerminal.csv');
             logsM.logToCSV(logPath,'StartTurn', `Iniciando turno ${turnoNum} de ${ciclos}`);
 
             try {
-                await page.goto(process.env.DOMAIN_URL + '/client/flows/dispenser_1/');
+                // '/client/flows/dispenser_1/'
+                await page.goto(process.env.DOMAIN_URL + '/client/flows/maersk/');
                 logsM.logToCSV(logPath, 'Navigation', 'Página cargada correctamente.');
 
                 await page.waitForTimeout(3000);
 
                 // Stage 1 - Pantalla de bienvenida
-                const botonInicio = page.locator('img.btn.btn-without-over.circle[src="/static/images/btn-inicio.png"]').first();
+                const stageWelcome = page.locator('#stage-container div').first();
 
-                if (await botonInicio.isVisible()) {
-                    logsM.logToCSV(logPath, 'ButtonCheck', 'El botón con el icono Inicio está visible.');
-                    await botonInicio.click();
-                    logsM.logToCSV(logPath, 'ButtonClick', `El botón con el icono Inicio fue clickeado correctamente.`);
+                if (await stageWelcome.isVisible()) {
+                    logsM.logToCSV(logPath, 'stageWelcome', 'El stage Bienvenido está visible.');
+                    await stageWelcome.click();
                 }
 
                 // Stage 2 - Escanear DNI
-                const stageScanDNI = page.locator();  // Locator para el stage "Escanear DNI"
-                if(stageScanDNI.isVisible()){
-                    logsM.logToCSV(logPath, 'WaitingScanDni', 'Esperando que el usuario escanee el DNI...');
+                // const stageScanDNI = page.locator();  // Locator para el stage "Escanear DNI"
+                // if(stageScanDNI.isVisible()){
+                //     logsM.logToCSV(logPath, 'WaitingScanDni', 'Esperando que el usuario escanee el DNI...');
 
-                    // Espera hasta que el stage desaparezca
-                    await stageScanDNI.waitFor({ state: 'hidden' }); 
-                }
+                //     // Espera hasta que el stage desaparezca
+                //     await stageScanDNI.waitFor({ state: 'hidden' }); 
+                // }
 
-                //Validacion stage tramites
-                const stageProcedures = page.locator();
-                if (stageProcedures.isVisible()) {
-                    logsM.logToCSV(logPath, 'SuccessScanDni', 'DNI ESCANEADO correctamente.');    
-                }
+                // //Validacion stage tramites
+                // const stageProcedures = page.locator();
+                // if (stageProcedures.isVisible()) {
+                //     logsM.logToCSV(logPath, 'SuccessScanDni', 'DNI ESCANEADO correctamente.');    
+                // }
 
                 // Stage 3 - Modulo de teclado para ingresar DNI
-                const stageInputDNI = page.locator() // Locator para el stage "Input DNI"
+                const stageInputDNI = page.locator('#stage-container div').filter({ hasText: 'El DNI ingresado es incorrecto DNI' }).first()
                 if (await stageInputDNI.isVisible()) {
-                    logsM.logToCSV(logPath, 'FailScanDni', 'FAIL al escanear DNI.');
-
+                    logsM.logToCSV(logPath, 'FailScanDni', 'FALLO al escanear DNI.');
                     logsM.logToCSV(logPath, 'WaitingInputDni', 'Esperando que el usuario ingrese manualmente el DNI...');
-
-                // await stageInputDNI.waitFor({ state: 'visible', timeout: 5000});
                 
                     const keyboard = [
                         {
                             name: '0',
-                            locator: page.locator('')
+                            locator: page.locator('#stage-container #cero')
                         },
                         {
                             name: '1',
-                            locator: page.locator('')
+                            locator: page.locator('.key-character').first()
                         },
                         {
                             name: '2',
-                            locator: page.locator('')
+                            locator: page.locator('div:nth-child(2) > .key-character').first()
                         },
                         {
                             name: '3',
-                            locator: page.locator('')
+                            locator: page.locator('div:nth-child(3) > .key-character').first()
                         },
                         {
                             name: '4',
-                            locator: page.locator('')
+                            locator: page.locator('div:nth-child(4) > div > .key-character').first()
                         },
                         {
                             name: '5',
-                            locator: page.locator('')
+                            locator: page.locator('div:nth-child(4) > div:nth-child(2) > .key-character').first()
                         },
                         {
                             name: '6',
-                            locator: page.locator('')
+                            locator: page.locator('div:nth-child(4) > div:nth-child(3) > .key-character').first()
                         },
                         {
                             name: '7',
-                            locator: page.locator('')
+                            locator: page.locator('div:nth-child(5) > div > .key-character').first()
                         },
                         {
                             name: '8',
-                            locator: page.locator('')
+                            locator: page.locator('div:nth-child(5) > div:nth-child(2) > .key-character').first()
                         },
                         {
                             name: '9',
-                            locator: page.locator('')
+                            locator: page.locator('div:nth-child(5) > div:nth-child(3) > .key-character').first()
                         },
                         {
                             name: 'Borrar',
-                            locator: page.locator('')
+                            locator: page.locator('div:nth-child(6) > div > .key-character').first()
                         },
                         {
                             name: 'Ok',
-                            locator: page.locator('')
+                            locator: page.locator('#stage-container #buttonOkDni')
                         },
                     
                     ]
 
-                    const dniActual = await keyboardM.getElementAtIndex(listOfDni, turnoNum); 
+                    const dniActual = await keyboardM.getElementAtIndex(listOfDni, turnoNum);
+                    logsM.logToCSV(logPath, 'InputDni', `DNI ${dniActual} a ingresar.`);
+
                     await keyboardM.inputDni(page, logPath , keyboard, dniActual.toString());
+
+                    await page.waitForTimeout(3000);
                     logsM.logToCSV(logPath, 'SuccessInputDni', 'DNI INGRESADO correctamente.');    
                 }
                 
@@ -143,21 +144,28 @@ const logPath = resolve(__dirname, './logs/logMaerskTerminal.csv');
                 const procedureList = [
                     {
                         name: "botonMaersk",
-                        locator: page.locator('img.btn.circle[src="/static/images/btn-legales.png"]').first()
+                        locator: page.getByText('Maersk', { exact: true })
                     },
                     {
                         name: "botonMaerskAereo",
-                        locator: page.locator('button.btn-totem-selection2.btn-block.stage-option.strongles.pull-right', { hasText: 'JUICIOS' })
+                        locator: page.getByText('maersk-aereo')
                     },
                     {
                         name: "botonMaerskLsl",
-                        locator: page.locator('button.btn-totem-multioption.btn-material-bluegrey.stage-option.strongles.pull-right.btn-block', { hasText: 'OFICIAL NOTIFICADOR' })
+                        locator: page.getByText('maersk-lsl')
                     },
                 ]
-
                 procedureM.selectRandomProcedure(logPath, procedureList);
+                
+                await page.waitForTimeout(3000);
 
-                logsM.logToCSV(logPath, 'EndTurn', `Finalizado turno ${turnoNum} de ${ciclos}`);
+                // Stage 5 - Confirmación de encolamiento
+                const stageQueue = page.locator('asd') // Locator para el stage "Encolamiento"
+                if (await stageQueue.isVisible()) {
+                    logsM.logToCSV(logPath, 'EndTurn', `Finalizado correctamente turno ${turnoNum} de ${ciclos}`);
+                }
+                logsM.logToCSV(logPath, 'Error', `Error al encolar el turno ${turnoNum} de ${ciclos}`);
+
             } catch (error) {
                 logsM.logToCSV(logPath, 'Error', `Error en el turno ${turnoNum}: ${error.message}`);
                 console.error(`Error en el turno ${turnoNum}:`, error);

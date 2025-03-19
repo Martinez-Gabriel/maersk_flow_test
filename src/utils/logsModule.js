@@ -23,7 +23,7 @@ export function logToCSV(logPath ,event, message) {
 // Escribe log si el boton esta visible y ejecuta un click, si no muestra el log buttonFail
 export async function visibleAndClickLog(logPath, name, button) {
     if (await button.isVisible) {
-        logToCSV(logPath, 'ButtonCheck', `El Botón ${name} está visible.`);
+        // logToCSV(logPath, 'ButtonCheck', `El Botón ${name} está visible.`);
         
         await button.click();
         logToCSV(logPath, 'ButtonClick', `El Botón ${name} fue clickeado correctamente.`);

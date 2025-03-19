@@ -12,14 +12,15 @@ export function generateDniRandoms(cant) {
 // Recorre dni ingresado y ejecuta click en cada boton mostrando log
 export async function inputDni(page, logPath, keyboard, dni){
     for (const digit of dni){
-        const boton = keyboard.find(b => b.nombre === digit);
-    
+        const boton = keyboard.find(b => b.name === digit.toString());
+
         if(boton){
-        const buttonElement = page.locator(boton.locator)
+        const buttonElement = boton.locator;
+        await page.waitForTimeout(500);
         logsM.visibleAndClickLog(logPath, digit, buttonElement)
         }   
     }
-    const botonOk = keyboard.find(b => b.nombre === 'Ok');
+    const botonOk = keyboard.find(b => b.name === 'Ok');
     if (botonOk) {
         logsM.visibleAndClickLog(logPath, 'Ok', botonOk.locator)
     }

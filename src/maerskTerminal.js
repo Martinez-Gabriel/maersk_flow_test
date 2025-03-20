@@ -3,7 +3,9 @@ import { chromium } from 'playwright';
 import *as logsM from './utils/logsModule.js'
 import *as keyboardM from './terminal/keyboardModule.js'
 import *as procedureM from './terminal/procedureModule.js'
+import *as scanM from './terminal/scanModule.js';
 
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
 
@@ -13,6 +15,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const logPath = resolve(__dirname, './logs/logMaerskTerminal.csv');
+const dniScanList = resolve(__dirname, '../dniScanListWithFails.json');
 
 (async () => {
     let browser;
@@ -30,17 +33,33 @@ const logPath = resolve(__dirname, './logs/logMaerskTerminal.csv');
             };
         });
 
-        const ciclos = 200;
+        const ciclos = 5;
         const delayEntreTurnos = 60000; // 1 minutos en milisegundos
 
         const listOfDni = keyboardM.generateDniRandoms(ciclos + 1);
-        logsM.logToCSV(logPath, 'dniInputListMock', `Lista de DNI input generada: ${listOfDni}`);
+        logsM.logToCSV(logPath, 'DniInputListMock', `Lista de DNI input generada: ${listOfDni}`);
+
+        let mockDniScanList;
+        
+        if (fs.existsSync(dniScanList)) {
+            const existingList = JSON.parse(fs.readFileSync(dniScanList, 'utf8'));
+            if (Array.isArray(existingList) && existingList.length === ciclos) {
+                mockDniScanList = existingList;
+                logsM.logToCSV(logPath, 'DniScanListMock', 'Lista de DNI escaneados existente reutilizada.');
+            } else {
+                mockDniScanList = await scanM.generateRandomsScanListWithFails(dniScanList, ciclos);
+                logsM.logToCSV(logPath, 'DniScanListMock', `Lista de DNI escaneados generada: ${mockDniScanList}`);
+            }
+        } else {
+            mockDniScanList = await scanM.generateRandomsScanListWithFails(dniScanList, ciclos);
+            logsM.logToCSV(logPath, 'DniScanListMock', `Lista de DNI escaneados generada: ${mockDniScanList}`);
+        }
 
         for (let i = 0; i < ciclos; i++) {
 
             const turnoNum = i + 1;
             console.log(`Turno ${turnoNum} de ${ciclos}`);
-            logsM.logToCSV(logPath,'StartTurn', `Iniciando turno ${turnoNum} de ${ciclos}`);
+            logsM.logToCSV(logPath,'StartTurn', `>>>>>>>>>> Iniciando turno ${turnoNum} de ${ciclos} <<<<<<<<<<`);
 
             try {
                 // '/client/flows/dispenser_1/'
@@ -53,30 +72,32 @@ const logPath = resolve(__dirname, './logs/logMaerskTerminal.csv');
                 const stageWelcome = page.locator('#stage-container div').first();
 
                 if (await stageWelcome.isVisible()) {
-                    logsM.logToCSV(logPath, 'stageWelcome', 'El stage Bienvenido está visible.');
+                    logsM.logToCSV(logPath, 'StageWelcome', 'El stage Bienvenido está visible.');
                     await stageWelcome.click();
                 }
 
                 // Stage 2 - Escanear DNI
-                // const stageScanDNI = page.locator();  // Locator para el stage "Escanear DNI"
-                // if(stageScanDNI.isVisible()){
-                //     logsM.logToCSV(logPath, 'WaitingScanDni', 'Esperando que el usuario escanee el DNI...');
+                const stageScanDNI = page.locator('#boton_next1').nth(1);
+                if(stageScanDNI.isVisible()){
+                    logsM.logToCSV(logPath, 'WaitingScanDni', '🕑 Esperando que el usuario escanee el DNI...');
 
-                //     // Espera hasta que el stage desaparezca
-                //     await stageScanDNI.waitFor({ state: 'hidden' }); 
-                // }
+                    const userScan = await scanM.getElementJsonAtIndex(dniScanList, turnoNum); 
+                    await page.keyboard.type(userScan);
+                    await page.keyboard.press('Enter');
+                    logsM.logToCSV(logPath, 'ScanDniMock', `DNI escaneado ${userScan}.`);
+                }
 
-                // //Validacion stage tramites
-                // const stageProcedures = page.locator();
-                // if (stageProcedures.isVisible()) {
-                //     logsM.logToCSV(logPath, 'SuccessScanDni', 'DNI ESCANEADO correctamente.');    
-                // }
+                //Validacion stage tramites
+                const stageProcedures = page.locator('div:nth-child(4)').first();
+                if (stageProcedures.isVisible()) {
+                    logsM.logToCSV(logPath, 'SuccessScanDni', '✅ DNI escaneado correctamente.');    
+                }
 
                 // Stage 3 - Modulo de teclado para ingresar DNI
                 const stageInputDNI = page.locator('#stage-container div').filter({ hasText: 'El DNI ingresado es incorrecto DNI' }).first()
                 if (await stageInputDNI.isVisible()) {
-                    logsM.logToCSV(logPath, 'FailScanDni', 'FALLO al escanear DNI.');
-                    logsM.logToCSV(logPath, 'WaitingInputDni', 'Esperando que el usuario ingrese manualmente el DNI...');
+                    logsM.logToCSV(logPath, 'FailScanDni', '⛔ FALLO los datos obtenidos no son validos.');
+                    logsM.logToCSV(logPath, 'WaitingInputDni', '🕑 Esperando que el usuario ingrese manualmente el DNI...');
                 
                     const keyboard = [
                         {
@@ -131,12 +152,12 @@ const logPath = resolve(__dirname, './logs/logMaerskTerminal.csv');
                     ]
 
                     const dniActual = await keyboardM.getElementAtIndex(listOfDni, turnoNum);
-                    logsM.logToCSV(logPath, 'InputDni', `DNI ${dniActual} a ingresar.`);
+                    logsM.logToCSV(logPath, 'InputDniMock', `DNI ${dniActual} a ingresar.`);
 
                     await keyboardM.inputDni(page, logPath , keyboard, dniActual.toString());
 
                     await page.waitForTimeout(3000);
-                    logsM.logToCSV(logPath, 'SuccessInputDni', 'DNI INGRESADO correctamente.');    
+                    logsM.logToCSV(logPath, 'SuccessInputDni', '✅ DNI ingresado correctamente.');    
                 }
                 
 
@@ -162,9 +183,9 @@ const logPath = resolve(__dirname, './logs/logMaerskTerminal.csv');
                 // Stage 5 - Confirmación de encolamiento
                 const stageQueue = page.locator('asd') // Locator para el stage "Encolamiento"
                 if (await stageQueue.isVisible()) {
-                    logsM.logToCSV(logPath, 'EndTurn', `Finalizado correctamente turno ${turnoNum} de ${ciclos}`);
+                    logsM.logToCSV(logPath, 'EndTurn', `✅ Finalizado correctamente turno ${turnoNum} de ${ciclos}`);
                 }
-                logsM.logToCSV(logPath, 'Error', `Error al encolar el turno ${turnoNum} de ${ciclos}`);
+                logsM.logToCSV(logPath, 'Error', `❌ Error al encolar el turno ${turnoNum} de ${ciclos}>`);
 
             } catch (error) {
                 logsM.logToCSV(logPath, 'Error', `Error en el turno ${turnoNum}: ${error.message}`);

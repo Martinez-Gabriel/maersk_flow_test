@@ -73,3 +73,54 @@ export async function generateScanDni(typeDni) {
         throw new Error('Índice fuera de rango');
     }
   }
+
+// Genera un dni aleatorio con datos de un usuario aleatorio y el caso = 2 fallaria.
+  export async function generateScanDniWithFail(typeDni) {
+    try{
+      const response = await fetch('https://randomuser.me/api/?nat=es,us');   
+      const data = await response.json();
+      const user = data.results[0];
+      const userData = {
+        transactionNumber: Math.floor(10000000000 + Math.random() * 90000000000).toString(),
+        lastName: user.name.last.toUpperCase(),
+        firstName: user.name.first.toUpperCase(),
+        gender: user.gender.charAt(0).toUpperCase(),
+        dni: Math.floor(10000000 + Math.random() * 90000000).toString(),
+        category: 'B',
+        birthDate: dateRandomFormat(1970, 2007),
+        issueDate: dateRandomFormat(2010, 2025),
+        cuitNumber: Math.floor(100 + Math.random() * 900),
+      };
+      
+      if(typeDni === 0){
+        const dniString = `${userData.transactionNumber}"${userData.lastName}"${userData.firstName}"${userData.gender}"${userData.dni}"${userData.category}"${userData.birthDate}"${userData.issueDate}`;
+        console.log(`Dni tipo 0:  ${dniString}`);
+        return dniString;
+      } else if (typeDni === 1){
+        const dniString = `${userData.transactionNumber}"${userData.lastName}"${userData.firstName}"${userData.gender}"${userData.dni}"${userData.category}"${userData.birthDate}"${userData.issueDate}"${userData.cuitNumber}`;  
+        console.log(`Dni tipo 1:  ${dniString}`);
+        return dniString;
+      } else {
+        const dniString = `${userData.transactionNumber}"${userData.lastName}"${userData.firstName}`;
+        console.log(`Dni tipo 2:  ${dniString}`);
+        return dniString;
+      }
+  }
+    catch(error){
+      console.error(error);
+      return error;
+    }
+  }
+
+  // Genera una lista de DNIs aleatorios con y sin fallas y los guarda en un archivo json
+  export async function generateRandomsScanListWithFails(path, cant) {
+    const dniList = [];
+    for (let i = 0; i < cant; i++) {
+        let dni = await generateScanDniWithFail(Math.floor(Math.random() * 3));
+        dniList.push(dni);
+    }
+    const jsonContent = JSON.stringify(dniList, null, 2);
+    fs.writeFileSync(path, jsonContent, 'utf8');
+
+    return dniList;
+  }

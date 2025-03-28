@@ -21,6 +21,7 @@ export async function inputDni(page, logPath, keyboard, dni){
         }   
     }
     const botonOk = keyboard.find(b => b.name === 'Ok');
+    await page.waitForTimeout(2000);
     if (botonOk) {
         logsM.visibleAndClickLog(logPath, 'Ok', botonOk.locator)
     }

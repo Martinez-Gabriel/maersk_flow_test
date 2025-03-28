@@ -10,7 +10,7 @@ import {iniciarSesion} from './caller/loginModule.js'
 dotenv.config();
 const DOMAIN_URL = process.env.DOMAIN_URL;
 const USER_CALLER_2 = process.env.USER_CALLER_2;
-const PASS_CALLER_2 = process.env.PASS_CALLER_2;
+const PASS_CALLER_2 = process.env.PASSWORD_CALLER_2;
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -26,7 +26,7 @@ const tiemposTurno = {
     llamar: 5000,    // Tiempo para el llamado (en milisegundos)5000
     iniciar: 5000,   // Tiempo de espera para iniciar el turno (en milisegundos)5000
     finalizar: 5000, // Tiempo para finalizar el turno (en milisegundos)5000
-    intervalo: 3600000 / 12.5, // Intervalo entre turnos para alcanzar 12.5 turnos por hora (en milisegundos)3600000
+    intervalo: 3600000 / 180, // Intervalo entre turnos para alcanzar 12.5 turnos por hora (en milisegundos)3600000
 };
 
 
@@ -60,7 +60,10 @@ async function ejecutarRuta(page, ruta, ciclos) {
                 await realizarRutaCanceladosSinIniciar(page);
             } else if (ruta === 3) {
                 await realizarRutaCanceladosIniciado(page);
+            } else {
+                await realizarRutaDerivados(page);
             }
+
 
             logToCSV(logPath, 'EndCycle', `Ciclo ${cicloNum} finalizado para ruta ${ruta}`);
 
@@ -141,6 +144,41 @@ async function realizarRutaCanceladosIniciado(page) {
     }
 }
 
+async function realizarRutaDerivados(page) {
+    const btnRellamar = page.locator('#caller-button-rellamar');
+    for (let i = 0; i < 2; i++) {
+        if (await btnRellamar.isVisible()) {
+            await btnRellamar.click();
+            logToCSV(logPath, 'ButtonClick', `Botón RELLAMAR clickeado (${i + 1}/2).`);
+            await page.waitForTimeout(tiemposTurno.llamar);
+        }
+    }
+
+    const btnIniciar = page.locator('#caller-button-atender');
+    if (await btnIniciar.isVisible()) {
+        await btnIniciar.click();
+        logToCSV(logPath, 'ButtonClick', 'Botón INICIAR clickeado.');
+    }
+
+    const btnDerivar = page.locator('#caller-button-derivar');
+    if (await btnDerivar.isVisible()) {
+        await btnDerivar.click();
+        
+        await page.waitForTimeout(2000);
+        await page.locator('#s2id_select_sections').click();
+        
+        await page.waitForTimeout(2000);
+        await page.getByRole('option', { name: 'Maersk Aereo,' }).click();
+        
+        await page.getByText('Derivar', { exact: true }).click();
+
+        logToCSV(logPath, 'ButtonClick', 'Botón DERIVAR clickeado.');
+    }
+}
+
+
+
+
 (async () => {
     const browser = await chromium.launch({ headless: false, slowMo: 500 });
     const page = await browser.newPage();
@@ -148,9 +186,13 @@ async function realizarRutaCanceladosIniciado(page) {
 
     await iniciarSesion(page, logPath, DOMAIN_URL, USER_CALLER_2, PASS_CALLER_2);
 
-    await ejecutarRuta(page, 1, 50); // Ruta 1: Normal
+    await page.waitForTimeout(5000);
+    console.log('Esperando 5 segundos para que la página cargue completamente.');
+
+    // await ejecutarRuta(page, 1, 20); // Ruta 1: Normal
     // await ejecutarRuta(page, 2, 8); // Ruta 2: Cancelados Sin Iniciar
     // await ejecutarRuta(page, 3, 2); // Ruta 3: Cancelados Iniciado
+    await ejecutarRuta(page, 4, 30); // Ruta 4: Derivados
 
     console.log('Todos los turnos han finalizado.');
     logToCSV(logPath, 'EndTest', 'Se terminó la ejecucion del script.');

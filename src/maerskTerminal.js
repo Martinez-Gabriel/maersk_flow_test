@@ -33,8 +33,8 @@ const dniScanList = resolve(__dirname, '../dniScanListWithFails.json');
             };
         });
 
-        const ciclos = 5;
-        const delayEntreTurnos = 60000; // 1 minutos en milisegundos
+        const ciclos = 150;
+        const delayEntreTurnos = 30000; // 1 minutos en milisegundos
 
         const listOfDni = keyboardM.generateDniRandoms(ciclos + 1);
         logsM.logToCSV(logPath, 'DniInputListMock', `Lista de DNI input generada: ${listOfDni}`);
@@ -165,27 +165,30 @@ const dniScanList = resolve(__dirname, '../dniScanListWithFails.json');
                 const procedureList = [
                     {
                         name: "botonMaersk",
-                        locator: page.getByText('Maersk', { exact: true })
+                        locator: page.locator('#stage-container #hotspot1')
                     },
                     {
                         name: "botonMaerskAereo",
-                        locator: page.getByText('maersk-aereo')
+                        locator: page.locator('#stage-container #hotspot2')
                     },
                     {
                         name: "botonMaerskLsl",
-                        locator: page.getByText('maersk-lsl')
+                        locator: page.locator('#stage-container #hotspot3')
                     },
                 ]
+
+                await page.waitForTimeout(3000);
                 procedureM.selectRandomProcedure(logPath, procedureList);
                 
                 await page.waitForTimeout(3000);
 
                 // Stage 5 - Confirmación de encolamiento
-                const stageQueue = page.locator('asd') // Locator para el stage "Encolamiento"
+                const stageQueue = page.locator('div[data-stage-name="maersk_emit_turn"]').first();
                 if (await stageQueue.isVisible()) {
                     logsM.logToCSV(logPath, 'EndTurn', `✅ Finalizado correctamente turno ${turnoNum} de ${ciclos}`);
+                } else{
+                    logsM.logToCSV(logPath, 'Error', `❌ Error al encolar el turno ${turnoNum} de ${ciclos}>`);
                 }
-                logsM.logToCSV(logPath, 'Error', `❌ Error al encolar el turno ${turnoNum} de ${ciclos}>`);
 
             } catch (error) {
                 logsM.logToCSV(logPath, 'Error', `Error en el turno ${turnoNum}: ${error.message}`);
@@ -217,3 +220,4 @@ process.on('SIGINT', async () => {
     }
     process.exit();
 });
+

@@ -17,5 +17,5 @@ function intervalCalculator(turnsToAttend, operators, workingHours) {
 // 2. cantidad de operadores
 // 3. horario laboral
 
-intervalCalculator(200, 4, 4)
+intervalCalculator(240, 4, 3)
 

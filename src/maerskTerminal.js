@@ -23,7 +23,7 @@ const dniScanList = resolve(__dirname, '../dniScanListWithFails.json');
     try {
         //headless = false => muestra el browser visualmente
         //slowMo = 500 => ralentiza la ejecución en 500ms
-        browser = await chromium.launch({ headless: false, slowMo: 500 });
+        browser = await chromium.launch({ headless: false, slowMo: 250 });
         const page = await browser.newPage();
         await page.setViewportSize({ width: 1366, height: 768});
 
@@ -33,8 +33,8 @@ const dniScanList = resolve(__dirname, '../dniScanListWithFails.json');
             };
         });
 
-        const ciclos = 150;
-        const delayEntreTurnos = 30000; // 1 minutos en milisegundos
+        const ciclos = 240;
+        const delayEntreTurnos = 40000; // 1 minutos en milisegundos
 
         const listOfDni = keyboardM.generateDniRandoms(ciclos + 1);
         logsM.logToCSV(logPath, 'DniInputListMock', `Lista de DNI input generada: ${listOfDni}`);
@@ -43,7 +43,10 @@ const dniScanList = resolve(__dirname, '../dniScanListWithFails.json');
         
         if (fs.existsSync(dniScanList)) {
             const existingList = JSON.parse(fs.readFileSync(dniScanList, 'utf8'));
-            if (Array.isArray(existingList) && existingList.length === ciclos) {
+            console.log(`Lista lenght: ${existingList.length}`);
+            console.log(`ciclos lenght: ${ciclos}`);
+
+            if (Array.isArray(existingList) && existingList.length >= ciclos) {
                 mockDniScanList = existingList;
                 logsM.logToCSV(logPath, 'DniScanListMock', 'Lista de DNI escaneados existente reutilizada.');
             } else {
@@ -78,6 +81,9 @@ const dniScanList = resolve(__dirname, '../dniScanListWithFails.json');
 
                 // Stage 2 - Escanear DNI
                 const stageScanDNI = page.locator('#boton_next1').nth(1);
+
+                // <button id="boton_next1" class="stage-option element-hidden" disabled="" data-stage-option="ok"></button>
+
                 if(stageScanDNI.isVisible()){
                     logsM.logToCSV(logPath, 'WaitingScanDni', '🕑 Esperando que el usuario escanee el DNI...');
 
@@ -94,7 +100,10 @@ const dniScanList = resolve(__dirname, '../dniScanListWithFails.json');
                 }
 
                 // Stage 3 - Modulo de teclado para ingresar DNI
-                const stageInputDNI = page.locator('#stage-container div').filter({ hasText: 'El DNI ingresado es incorrecto DNI' }).first()
+                // const stageInputDNI = page.locator('#stage-container div').filter({ hasText: 'El DNI ingresado es incorrecto DNI' }).first()
+                const stageInputDNI = page.locator('div.stage-template.maersk-background-dni-manual[data-stage-name="maersk_dni_manual"]').first();
+                
+
                 if (await stageInputDNI.isVisible()) {
                     logsM.logToCSV(logPath, 'FailScanDni', '⛔ FALLO los datos obtenidos no son validos.');
                     logsM.logToCSV(logPath, 'WaitingInputDni', '🕑 Esperando que el usuario ingrese manualmente el DNI...');
@@ -118,31 +127,31 @@ const dniScanList = resolve(__dirname, '../dniScanListWithFails.json');
                         },
                         {
                             name: '4',
-                            locator: page.locator('div:nth-child(4) > div > .key-character').first()
+                            locator: page.locator('div:nth-child(3) > div > .key-character').first()
                         },
                         {
                             name: '5',
-                            locator: page.locator('div:nth-child(4) > div:nth-child(2) > .key-character').first()
+                            locator: page.locator('div:nth-child(3) > div:nth-child(2) > .key-character').first()
                         },
                         {
                             name: '6',
-                            locator: page.locator('div:nth-child(4) > div:nth-child(3) > .key-character').first()
+                            locator: page.locator('div:nth-child(3) > div:nth-child(3) > .key-character').first()
                         },
                         {
                             name: '7',
-                            locator: page.locator('div:nth-child(5) > div > .key-character').first()
+                            locator: page.locator('div:nth-child(4) > div > .key-character').first()
                         },
                         {
                             name: '8',
-                            locator: page.locator('div:nth-child(5) > div:nth-child(2) > .key-character').first()
+                            locator: page.locator('div:nth-child(4) > div:nth-child(2) > .key-character').first()
                         },
                         {
                             name: '9',
-                            locator: page.locator('div:nth-child(5) > div:nth-child(3) > .key-character').first()
+                            locator: page.locator('div:nth-child(4) > div:nth-child(3) > .key-character').first()
                         },
                         {
                             name: 'Borrar',
-                            locator: page.locator('div:nth-child(6) > div > .key-character').first()
+                            locator: page.locator('div:nth-child(5) > div > .key-character').first()
                         },
                         {
                             name: 'Ok',
@@ -156,7 +165,7 @@ const dniScanList = resolve(__dirname, '../dniScanListWithFails.json');
 
                     await keyboardM.inputDni(page, logPath , keyboard, dniActual.toString());
 
-                    await page.waitForTimeout(3000);
+                    await page.waitForTimeout(2200);
                     logsM.logToCSV(logPath, 'SuccessInputDni', '✅ DNI ingresado correctamente.');    
                 }
                 
@@ -167,24 +176,28 @@ const dniScanList = resolve(__dirname, '../dniScanListWithFails.json');
                         name: "botonMaersk",
                         locator: page.locator('#stage-container #hotspot1')
                     },
-                    {
-                        name: "botonMaerskAereo",
-                        locator: page.locator('#stage-container #hotspot2')
-                    },
+                    // {
+                    //     name: "botonMaerskAereo",
+                    //     locator: page.locator('#stage-container #hotspot2')
+                    // },
                     {
                         name: "botonMaerskLsl",
                         locator: page.locator('#stage-container #hotspot3')
                     },
                 ]
 
-                await page.waitForTimeout(3000);
+                await page.waitForTimeout(2000);
+
                 procedureM.selectRandomProcedure(logPath, procedureList);
                 
-                await page.waitForTimeout(3000);
+                
+                await page.waitForTimeout(2000);
 
                 // Stage 5 - Confirmación de encolamiento
+
                 const stageQueue = page.locator('div[data-stage-name="maersk_emit_turn"]').first();
-                if (await stageQueue.isVisible()) {
+
+                 if (await stageQueue.isVisible()) {
                     logsM.logToCSV(logPath, 'EndTurn', `✅ Finalizado correctamente turno ${turnoNum} de ${ciclos}`);
                 } else{
                     logsM.logToCSV(logPath, 'Error', `❌ Error al encolar el turno ${turnoNum} de ${ciclos}>`);
@@ -196,7 +209,7 @@ const dniScanList = resolve(__dirname, '../dniScanListWithFails.json');
             }
 
             if (turnoNum < ciclos) {
-                console.log(`Esperando 1 minutos antes de emitir el siguiente turno...`);
+                console.log(`Esperando 20 segundos antes de emitir el siguiente turno...`);
                 await page.waitForTimeout(delayEntreTurnos);
             }
         }

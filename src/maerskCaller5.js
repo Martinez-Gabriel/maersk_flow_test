@@ -4,20 +4,20 @@ import { chromium } from 'playwright';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
 
-import {logToCSV} from './utils/logsModule.js'
+import {logToCSV, getCurrentTimestamp} from './utils/logsModule.js'
 import {iniciarSesion} from './caller/loginModule.js'
 
 dotenv.config();
 const DOMAIN_URL = process.env.DOMAIN_URL;
-const USER_CALLER_4 = process.env.USER_CALLER_4;
-const PASS_CALLER_4 = process.env.PASSWORD_CALLER_4;
+const USER_CALLER_5 = process.env.USER_CALLER_5;
+const PASS_CALLER_5 = process.env.PASSWORD_CALLER_5;
 
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const logPath = resolve(__dirname, './logs/logMaerskCaller4.csv');
-const screenshotsFolder = resolve(__dirname, './logs/Caller4_screenshots');
+const logPath = resolve(__dirname, './logs/logMaerskCaller5.csv');
+const screenshotsFolder = resolve(__dirname, './logs/Caller5_screenshots');
 if (!fs.existsSync(screenshotsFolder)) fs.mkdirSync(screenshotsFolder);
 
 // // Variable de configuración de los tiempos de atención
@@ -31,7 +31,7 @@ const tiemposTurno = {
 
 async function takeScreenshot(page, step) {
     const timestamp = Date.now();
-    const screenshotPath = resolve(screenshotsFolder, `Caller4_screenshot_${step}_${timestamp}.png`);
+    const screenshotPath = resolve(screenshotsFolder, `Caller5_screenshot_${step}_${timestamp}.png`);
     await page.screenshot({ path: screenshotPath });
     logToCSV(logPath, 'Screenshot', `Captured screenshot: ${screenshotPath}`);
 }
@@ -89,6 +89,21 @@ async function realizarRutaNormal(page) {
         logToCSV(logPath, 'ButtonClick', 'Botón INICIAR clickeado.');
     }
 
+    const turnoElement = page.locator('td.text-center.datos-turno').nth(0);
+        const turnoText = await turnoElement.textContent();
+        console.log(`Número obtenido: ${turnoText.trim()}`);
+    
+        const recepcionTurnosPath = resolve(__dirname, './logs/recepcionDeTurnosDerivados.csv');
+        const timestamp = getCurrentTimestamp();
+        const turnoData = `${timestamp}, ${turnoText.trim()}\n`;
+    
+        if (!fs.existsSync(recepcionTurnosPath)) {
+            fs.writeFileSync(recepcionTurnosPath, 'Timestamp,Turno\n');
+        }
+        fs.appendFileSync(recepcionTurnosPath, turnoData);
+    
+        logToCSV(logPath, 'SaveTurno', `Turno guardado: ${turnoText.trim()}, ${timestamp}`);
+
     await page.waitForTimeout(tiemposTurno.iniciar);
 
     const btnFinalizar = page.locator('#caller-button-finalizar');
@@ -109,7 +124,7 @@ async function realizarRutaCanceladosSinIniciar(page) {
             await page.waitForTimeout(tiemposTurno.llamar);
         }
     }
-    
+
     const btnCancelar = page.locator('#caller-button-cancelar');
     if (await btnCancelar.isVisible()) {
         await btnCancelar.click();
@@ -145,7 +160,7 @@ async function realizarRutaCanceladosIniciado(page) {
     const page = await browser.newPage();
     await page.setViewportSize({ width: 1280, height: 720 });
 
-    await iniciarSesion(page, logPath, DOMAIN_URL, USER_CALLER_4, PASS_CALLER_4);
+    await iniciarSesion(page, logPath, DOMAIN_URL, USER_CALLER_5, PASS_CALLER_5);
 
     // await page.locator('select[name="box"]').selectOption('PUESTO 4');
     // await page.locator('#btn-select-box').click();
@@ -154,8 +169,8 @@ async function realizarRutaCanceladosIniciado(page) {
     console.log('Esperando 5 segundos para que la página cargue completamente.');
 
     await ejecutarRuta(page, 1, 60); // Ruta 1: Normal
-    // await ejecutarRuta(page, 2, 20); // Ruta 2: Cancelados Sin Iniciar
-    // await ejecutarRuta(page, 3, 20); // Ruta 3: Cancelados Iniciado
+    // await ejecutarRuta(page, 2, 11); // Ruta 2: Cancelados Sin Iniciar
+    // await ejecutarRuta(page, 3, 11); // Ruta 3: Cancelados Iniciado
 
     console.log('Todos los turnos han finalizado.');
     logToCSV(logPath, 'EndTest', 'Se terminó la ejecucion del script.');

@@ -10,6 +10,7 @@
     "caller2": "node src/maerskCaller2.js",
     "caller3": "node src/maerskCaller3.js",
     "caller4": "node src/maerskCaller4.js",
+    "caller5": "node src/maerskCaller5.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "build:win": "pkg . --targets node18-win-x64 --output build/maersk-flow-test.exe",
     "build:linux": "pkg . --targets node18-linux-x64 --output build/maersk-flow-test"

@@ -2,14 +2,15 @@ import { logToCSV } from '../utils/logsModule.js';
 
 export async function iniciarSesion(page, logPath, url, username, password) {
     const inputUsuario = page.locator('input[name="username"]');
-    const inputContrasena = page.locator('input[name="password"]');
+    const inputContrasena = page.locator('input[type="password"][name="password"][placeholder="Contraseña"]');
     const botonLogin = page.locator('button[type="submit"]');
 
     try {
         console.log("Iniciando sesión...");
         logToCSV(logPath, 'StartSession', 'Iniciando sesión');
 
-        await page.goto(url + '/caller/');
+        await page.goto( url + '/login/');
+        console.log('Esperando a que la página cargue...');
         logToCSV(logPath, 'Navigation', 'Página cargada correctamente.');
 
         if (await inputUsuario.isVisible()) {
@@ -22,6 +23,7 @@ export async function iniciarSesion(page, logPath, url, username, password) {
         }
 
         if (await inputContrasena.isVisible()) {
+            console.log('Password recibido:', password);
             await inputContrasena.fill(password);
             logToCSV(logPath, 'InputAction', 'Contraseña ingresada correctamente.');
         } else {
@@ -31,6 +33,9 @@ export async function iniciarSesion(page, logPath, url, username, password) {
         if (await botonLogin.isVisible()) {
             await botonLogin.click();
             logToCSV(logPath, 'ButtonClick', 'Botón de inicio de sesión clickeado.');
+
+            await page.goto( url + '/caller/');
+
         } else {
             console.error('Botón de inicio de sesión no visible.');
         }

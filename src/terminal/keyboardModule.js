@@ -16,7 +16,7 @@ export async function inputDni(page, logPath, keyboard, dni){
 
         if(boton){
         const buttonElement = boton.locator;
-        await page.waitForTimeout(500);
+        await page.waitForTimeout(1000);
         logsM.visibleAndClickLog(logPath, digit, buttonElement)
         }   
     }

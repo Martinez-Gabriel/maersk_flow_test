@@ -1,0 +1,253 @@
+import dotenv from 'dotenv';
+import fs from 'fs';
+import { chromium } from 'playwright';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
+
+import {logToCSV, getCurrentTimestamp} from './utils/logsModule.js'
+import {iniciarSesion} from './caller/loginModule.js'
+
+dotenv.config();
+const DOMAIN_URL = process.env.DOMAIN_URL;
+const USER_CALLER_2 = process.env.USER_CALLER_2;
+const PASS_CALLER_2 = process.env.PASSWORD_CALLER_2;
+
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const logPath = resolve(__dirname, './logs/logMaerskCaller2.csv');
+const screenshotsFolder = resolve(__dirname, './logs/Caller2_screenshots');
+if (!fs.existsSync(screenshotsFolder)) fs.mkdirSync(screenshotsFolder);
+
+// // Variable de configuración de los tiempos de atención
+const tiemposTurno = {
+    llamar: 5000,    // Tiempo para el llamado (en milisegundos)5000
+    iniciar: 5000,   // Tiempo de espera para iniciar el turno (en milisegundos)5000
+    finalizar: 5000, // Tiempo para finalizar el turno (en milisegundos)5000
+    intervalo: 3600000 / 30, // Intervalo entre turnos para alcanzar 12.5 turnos por hora (en milisegundos)3600000
+};
+
+
+async function takeScreenshot(page, step) {
+    const timestamp = Date.now();
+    const screenshotPath = resolve(screenshotsFolder, `Caller2_screenshot_${step}_${timestamp}.png`);
+    await page.screenshot({ path: screenshotPath });
+    logToCSV(logPath, 'Screenshot', `Captured screenshot: ${screenshotPath}`);
+}
+
+
+async function ejecutarRuta(page, ruta, ciclos) {
+    for (let i = 0; i < ciclos; i++) {
+        const cicloNum = i + 1;
+        logToCSV(logPath, 'StartCycle', `Iniciando ciclo ${cicloNum} para turno ${ruta}`);
+
+        try {
+            const errorModal = page.locator('#caller-error-modal');
+
+            if (await errorModal.isVisible()) {
+                console.log('Etapa 1 - El modal de error está visible.');
+                logToCSV(logPath, 'ErrorModal', 'El modal de error está visible etapa 1.');
+
+                // Si el modal tiene un botón para cerrarlo
+                const closeButton = page.locator('#modal-error-close');
+                if (await closeButton.isVisible()) {
+                    await closeButton.click();
+                    console.log('Modal cerrado.');
+                    logToCSV(logPath, 'ErrorModal', 'Modal cerrado.');
+                }
+
+            } else {
+
+                await takeScreenshot(page, `turno${ruta}_ciclo${cicloNum}`);
+                
+                const btnLlamar = page.locator('#caller-button-llamar');
+                if (await btnLlamar.isVisible()) {
+                    await btnLlamar.click();
+                    logToCSV(logPath, 'ButtonClick', 'Botón LLAMAR clickeado.');
+                }
+
+                if (ruta === 1) {
+                    await realizarRutaNormal(page);
+                } else if (ruta === 2) {
+                    await realizarRutaCanceladosSinIniciar(page);
+                } else if (ruta === 3) {
+                    await realizarRutaCanceladosIniciado(page);
+                } else {
+                    await realizarRutaDerivados(page);
+                }
+
+
+                logToCSV(logPath, 'EndCycle', `Ciclo ${cicloNum} finalizado para ruta ${ruta}`);
+
+                // Intervalo entre ciclos (aproximadamente 15 minutos por ciclo para cumplir 4 por hora)
+                await page.waitForTimeout(tiemposTurno.intervalo);
+            }
+        } catch (error) {
+            console.error(`Error en ciclo ${cicloNum} para ruta ${ruta}: ${error.message}`);
+            logToCSV(logPath, 'Error', `Error en ciclo ${cicloNum} para ruta ${ruta}: ${error.message}`);
+        }
+    }
+}
+
+async function realizarRutaNormal(page) {
+    const btnRellamar = page.locator('#caller-button-rellamar');
+    for (let i = 0; i < 2; i++) {
+        if (await btnRellamar.isVisible()) {
+            await btnRellamar.click();
+            logToCSV(logPath, 'ButtonClick', `Botón RELLAMAR clickeado (${i + 1}/2).`);
+            await page.waitForTimeout(tiemposTurno.llamar);
+        }
+    }
+
+    const btnIniciar = page.locator('#caller-button-atender');
+    if (await btnIniciar.isVisible()) {
+        await btnIniciar.click();
+        logToCSV(logPath, 'ButtonClick', 'Botón INICIAR clickeado.');
+    }
+
+    await page.waitForTimeout(tiemposTurno.iniciar);
+
+    const btnFinalizar = page.locator('#caller-button-finalizar');
+    if (await btnFinalizar.isVisible()) {
+        await btnFinalizar.click();
+        logToCSV(logPath, 'ButtonClick', 'Botón FINALIZAR clickeado.');
+    }
+
+    await page.waitForTimeout(tiemposTurno.finalizar);
+}
+
+async function realizarRutaCanceladosSinIniciar(page) {
+    const btnRellamar = page.locator('#caller-button-rellamar');
+    for (let i = 0; i < 3; i++) {
+        if (await btnRellamar.isVisible()) {
+            await btnRellamar.click();
+            logToCSV(logPath, 'ButtonClick', `Botón RELLAMAR clickeado (${i + 1}/3).`);
+            await page.waitForTimeout(tiemposTurno.llamar);
+        }
+    }
+
+    const btnCancelar = page.locator('#caller-button-cancelar');
+    if (await btnCancelar.isVisible()) {
+        await btnCancelar.click();
+        logToCSV(logPath, 'ButtonClick', 'Botón CANCELAR clickeado.');
+    }
+}
+
+async function realizarRutaCanceladosIniciado(page) {
+    const btnRellamar = page.locator('#caller-button-rellamar');
+    for (let i = 0; i < 2; i++) {
+        if (await btnRellamar.isVisible()) {
+            await btnRellamar.click();
+            logToCSV(logPath, 'ButtonClick', `Botón RELLAMAR clickeado (${i + 1}/2).`);
+            await page.waitForTimeout(tiemposTurno.llamar);
+        }
+    }
+
+    const btnIniciar = page.locator('#caller-button-atender');
+    if (await btnIniciar.isVisible()) {
+        await btnIniciar.click();
+        logToCSV(logPath, 'ButtonClick', 'Botón INICIAR clickeado.');
+    }
+
+    const btnCancelar = page.locator('#caller-button-cancelar');
+    if (await btnCancelar.isVisible()) {
+        await btnCancelar.click();
+        logToCSV(logPath, 'ButtonClick', 'Botón CANCELAR clickeado.');
+    }
+}
+
+async function realizarRutaDerivados(page) {
+
+    const errorModal = page.locator('#caller-error-modal');
+
+    if (await errorModal.isVisible()) {
+        console.log('Etapa 2 - El modal de error está visible.');
+        logToCSV(logPath, 'ErrorModal', 'El modal de error está visible etapa 2.');
+
+        // Si el modal tiene un botón para cerrarlo
+        const closeButton = page.locator('#modal-error-close');
+        if (await closeButton.isVisible()) {
+            await closeButton.click();
+            console.log('Modal cerrado.');
+            logToCSV(logPath, 'ErrorModal', 'Modal cerrado.');
+        }
+    } else {
+
+        const btnRellamar = page.locator('#caller-button-rellamar');
+        for (let i = 0; i < 2; i++) {
+            if (await btnRellamar.isVisible()) {
+                await btnRellamar.click();
+                logToCSV(logPath, 'ButtonClick', `Botón RELLAMAR clickeado (${i + 1}/2).`);
+                await page.waitForTimeout(tiemposTurno.llamar);
+            }
+        }
+
+        const btnIniciar = page.locator('#caller-button-atender');
+        if (await btnIniciar.isVisible()) {
+            await btnIniciar.click();
+            logToCSV(logPath, 'ButtonClick', 'Botón INICIAR clickeado.');
+        }
+
+        const turnoElement = page.locator('td.text-center.datos-turno').nth(0);
+        const turnoText = await turnoElement.textContent();
+        console.log(`Número obtenido: ${turnoText.trim()}`);
+        console.log('Se derivo a AÉREO');
+
+        const derivarTurnosPath = resolve(__dirname, './logs/derivarTurnos.csv');
+        const timestamp = getCurrentTimestamp();
+        const turnoData = `${timestamp}, AÉREO, ${turnoText.trim()}\n`;
+
+        if (!fs.existsSync(derivarTurnosPath)) {
+            fs.writeFileSync(derivarTurnosPath, 'Timestamp,Sección,Turno\n');
+        }
+        fs.appendFileSync(derivarTurnosPath, turnoData);
+
+        logToCSV(logPath, 'SaveTurno', `Turno guardado: ${turnoText.trim()}, AÉREO, ${timestamp}`);
+
+
+        const btnDerivar = page.locator('#caller-button-derivar');
+        if (await btnDerivar.isVisible()) {
+            await btnDerivar.click();
+            
+            await page.waitForTimeout(2000);
+            await page.locator('#s2id_select_sections').click();
+            
+            await page.waitForTimeout(2000);
+            await page.getByRole('option', { name: 'AÉREO,' }).click();
+            
+            await page.getByText('Derivar', { exact: true }).click();
+
+            logToCSV(logPath, 'ButtonClick', 'Botón DERIVAR clickeado.');
+        }
+    }
+    
+}
+
+
+(async () => {
+    const browser = await chromium.launch({ headless: false, slowMo: 500 });
+    const page = await browser.newPage();
+    await page.setViewportSize({ width: 1280, height: 720 });
+
+    await iniciarSesion(page, logPath, DOMAIN_URL, USER_CALLER_2, PASS_CALLER_2);
+
+    await page.waitForTimeout(5000);
+
+    // await page.locator('select[name="box"]').selectOption('PUESTO 1');
+    // await page.locator('#btn-select-box').click();
+
+    await page.waitForTimeout(5000);
+    console.log('Esperando 5 segundos para que la página cargue completamente.');
+
+    // await ejecutarRuta(page, 1, 20); // Ruta 1: Normal
+    // await ejecutarRuta(page, 2, 8); // Ruta 2: Cancelados Sin Iniciar
+    // await ejecutarRuta(page, 3, 2); // Ruta 3: Cancelados Iniciado
+    await ejecutarRuta(page, 4, 60); // Ruta 4: Derivados
+
+    console.log('Todos los turnos han finalizado.');
+    logToCSV(logPath, 'EndTest', 'Se terminó la ejecucion del script.');
+
+    await browser.close();
+})();
+

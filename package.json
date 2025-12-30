@@ -1,0 +1,41 @@
+{
+  "name": "maersk-flow-test",
+  "version": "1.0.0",
+  "main": "src/maerskTerminal.js",
+  "bin": "src/maerskTerminal.js",
+  "scripts": {
+    "terminal": "node src/maerskTerminal.js",
+    "terminal2": "node src/maerskTerminalMockScaner.js",
+    "caller1": "node src/maerskCaller1.js",
+    "caller2": "node src/maerskCaller2.js",
+    "caller3": "node src/maerskCaller3.js",
+    "caller4": "node src/maerskCaller4.js",
+    "caller5": "node src/maerskCaller5.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build:win": "pkg . --targets node18-win-x64 --output build/maersk-flow-test.exe",
+    "build:linux": "pkg . --targets node18-linux-x64 --output build/maersk-flow-test"
+  },
+  "type": "module",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@babel/core": "^7.26.10",
+    "@babel/preset-env": "^7.26.9",
+    "dotenv": "^16.4.7",
+    "moment-timezone": "^0.5.47"
+  },
+  "pkg": {
+    "assets": [
+      "src/**/*",
+      "node_modules/**/*"
+    ],
+    "scripts": [
+      "src/maerskTerminal.js"
+    ]
+  },
+  "devDependencies": {
+    "playwright": "^1.51.0"
+  }
+}
